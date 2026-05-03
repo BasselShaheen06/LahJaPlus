@@ -1,0 +1,11 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+python-multipart==0.0.9
+librosa==0.10.2
+parselmouth==0.4.4
+scikit-learn==1.5.1
+soundfile==0.12.1
+numpy==1.26.4
+scipy==1.13.1
+openai==1.40.0
+python-dotenv==1.0.1
