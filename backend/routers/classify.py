@@ -62,6 +62,7 @@ async def classify_audio(file: UploadFile = File(...)):
                 "phoneme_markers": features["phoneme_data"]["markers"],
             },
             "spectrogram_data": {
+                "mel_spectrogram": features["mel_spectrogram"],
                 "mfcc_frames": features["mfcc_frames"],
                 "f0_contour": features["f0_contour"],
                 "duration_sec": features["duration_sec"],
