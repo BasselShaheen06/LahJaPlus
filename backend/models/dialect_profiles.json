@@ -1,58 +1,356 @@
 {
-  "egyptian": {
-    "npvi": { "mean": 39.0, "range": [34, 44], "rhythm": "syllable-timed" },
-    "f0": { "mean_male": 135.0, "mean_female": 210.0, "std": 28.0, "contour": "melodic, wide excursions" },
-    "voiced_fraction": { "mean": 0.70, "range": [0.65, 0.75] },
-    "qaf_dominant": "glottal",
-    "qaf_ipa": "ʔ",
-    "jeem_dominant": "velar",
-    "jeem_ipa": "g",
-    "mfcc_c1_mean": 22.5,
-    "mfcc_c2_mean": 0.3,
-    "delta_variance": "low",
-    "spectral_centroid": "medium",
-    "description": "Cairo dialect — syllable-timed rhythm, glottal Qaf, velar Jeem (exclusively Cairene)"
+  "meta": {
+    "description": "Core Arabic dialect vocabulary cross-reference. Injected into LLM translation prompts to enforce authentic word choices.",
+    "dialects": ["msa", "egyptian", "levantine", "gulf", "maghrebi"],
+    "version": "1.0"
   },
-  "levantine": {
-    "npvi": { "mean": 45.0, "range": [40, 50], "rhythm": "mixed — slight stress timing" },
-    "f0": { "mean_male": 132.0, "mean_female": 205.0, "std": 24.0, "contour": "moderate melodic range" },
-    "voiced_fraction": { "mean": 0.67, "range": [0.62, 0.72] },
-    "qaf_dominant": "glottal",
-    "qaf_ipa": "ʔ",
-    "jeem_dominant": "affricate",
-    "jeem_ipa": "dʒ",
-    "mfcc_c1_mean": 18.0,
-    "mfcc_c2_mean": -1.5,
-    "delta_variance": "low-medium",
-    "spectral_centroid": "medium",
-    "description": "Levantine dialect — mixed rhythm, glottal Qaf, affricate/fricative Jeem, Imala vowel fronting"
-  },
-  "gulf": {
-    "npvi": { "mean": 50.5, "range": [45, 56], "rhythm": "mixed/stress — long vs short vowel contrast" },
-    "f0": { "mean_male": 128.0, "mean_female": 200.0, "std": 22.0, "contour": "moderate range" },
-    "voiced_fraction": { "mean": 0.65, "range": [0.60, 0.70] },
-    "qaf_dominant": "velar",
-    "qaf_ipa": "g",
-    "jeem_dominant": "affricate",
-    "jeem_ipa": "dʒ",
-    "mfcc_c1_mean": 20.0,
-    "mfcc_c2_mean": 0.1,
-    "delta_variance": "medium",
-    "spectral_centroid": "low-medium",
-    "description": "Gulf dialect — stress-timed tendency, velar Qaf, affricate Jeem, rich long vowels"
-  },
-  "maghrebi": {
-    "npvi": { "mean": 65.0, "range": [58, 72], "rhythm": "stress-timed — strong long/short alternation" },
-    "f0": { "mean_male": 140.0, "mean_female": 215.0, "std": 18.0, "contour": "compressed, many gaps (vowel deletion)" },
-    "voiced_fraction": { "mean": 0.54, "range": [0.48, 0.60] },
-    "qaf_dominant": "uvular",
-    "qaf_ipa": "q",
-    "jeem_dominant": "fricative",
-    "jeem_ipa": "ʒ",
-    "mfcc_c1_mean": 8.5,
-    "mfcc_c2_mean": 0.8,
-    "delta_variance": "high",
-    "spectral_centroid": "high",
-    "description": "Maghrebi dialect — stress-timed rhythm, uvular Qaf, fricative Jeem, heavy consonant clusters"
+  "lexicon": [
+    {
+      "concept": "I want",
+      "msa": "أريد",
+      "egyptian": "عايز / عايزة",
+      "levantine": "بدي",
+      "gulf": "أبغى / أبي",
+      "maghrebi": "بغيت / حاب"
+    },
+    {
+      "concept": "now",
+      "msa": "الآن",
+      "egyptian": "دلوقتي / هسه",
+      "levantine": "هلق / هلأ",
+      "gulf": "الحين / هني",
+      "maghrebi": "دابا / درك"
+    },
+    {
+      "concept": "what",
+      "msa": "ماذا / ما",
+      "egyptian": "إيه",
+      "levantine": "شو",
+      "gulf": "إيش / وش",
+      "maghrebi": "شنو / آش"
+    },
+    {
+      "concept": "how",
+      "msa": "كيف",
+      "egyptian": "إزاي",
+      "levantine": "كيف / تيف",
+      "gulf": "كيف / چيف",
+      "maghrebi": "كيفاش / كيداش"
+    },
+    {
+      "concept": "where",
+      "msa": "أين",
+      "egyptian": "فين",
+      "levantine": "وين",
+      "gulf": "وين / فين",
+      "maghrebi": "فين / أين"
+    },
+    {
+      "concept": "why",
+      "msa": "لماذا",
+      "egyptian": "ليه",
+      "levantine": "ليش",
+      "gulf": "ليش / ليه",
+      "maghrebi": "علاش / واش"
+    },
+    {
+      "concept": "go / going",
+      "msa": "يذهب / أذهب",
+      "egyptian": "أروح / بروح",
+      "levantine": "روح / رايح",
+      "gulf": "أروح / أمشي",
+      "maghrebi": "نمشي / غادي"
+    },
+    {
+      "concept": "come / coming",
+      "msa": "يأتي / أتي",
+      "egyptian": "تعالى / جاي",
+      "levantine": "تعا / جاي",
+      "gulf": "تعال / يجي",
+      "maghrebi": "اجي / جاي"
+    },
+    {
+      "concept": "a lot / very much",
+      "msa": "كثيراً / جداً",
+      "egyptian": "أوي / كتير",
+      "levantine": "كتير / هيك",
+      "gulf": "وايد / كثير",
+      "maghrebi": "بزاف / كثير"
+    },
+    {
+      "concept": "good / nice",
+      "msa": "جيد / حسن",
+      "egyptian": "كويس / تمام",
+      "levantine": "منيح / تمام",
+      "gulf": "زين / عادل",
+      "maghrebi": "مزيان / لباس"
+    },
+    {
+      "concept": "no / not",
+      "msa": "لا / ليس",
+      "egyptian": "لأ / مش",
+      "levantine": "لأ / مو",
+      "gulf": "لا / مو",
+      "maghrebi": "لا / ماشي"
+    },
+    {
+      "concept": "yes",
+      "msa": "نعم",
+      "egyptian": "أيوه / ايه",
+      "levantine": "آه / أيوا",
+      "gulf": "إيه / أيوا",
+      "maghrebi": "إيه / واه"
+    },
+    {
+      "concept": "do / doing",
+      "msa": "يفعل / أفعل",
+      "egyptian": "بعمل / اعمل",
+      "levantine": "عم يعمل / عمل",
+      "gulf": "يسوي / أسوي",
+      "maghrebi": "كيدير / دير"
+    },
+    {
+      "concept": "know / knowing",
+      "msa": "يعرف / أعرف",
+      "egyptian": "عارف / اعرف",
+      "levantine": "عارف / بعرف",
+      "gulf": "عارف / أعرف",
+      "maghrebi": "عارف / كنعرف"
+    },
+    {
+      "concept": "say / tell",
+      "msa": "يقول / أقول",
+      "egyptian": "بقول / قول",
+      "levantine": "بحكي / حكي",
+      "gulf": "يقول / أقول",
+      "maghrebi": "كيقول / گول"
+    },
+    {
+      "concept": "see / look",
+      "msa": "يرى / انظر",
+      "egyptian": "بص / شوف",
+      "levantine": "شوف / طل",
+      "gulf": "شوف / طالع",
+      "maghrebi": "شوف / شاف"
+    },
+    {
+      "concept": "want (noun/desire)",
+      "msa": "رغبة / حاجة",
+      "egyptian": "عيزه / حاجة",
+      "levantine": "بدو / شي",
+      "gulf": "بغية / شي",
+      "maghrebi": "حاجة / شي"
+    },
+    {
+      "concept": "house / home",
+      "msa": "بيت / منزل",
+      "egyptian": "بيت / شقة",
+      "levantine": "بيت / دار",
+      "gulf": "بيت / منزل",
+      "maghrebi": "دار / بيت"
+    },
+    {
+      "concept": "water",
+      "msa": "ماء",
+      "egyptian": "مية",
+      "levantine": "مي / ميّ",
+      "gulf": "ماء / مي",
+      "maghrebi": "الما / ماء"
+    },
+    {
+      "concept": "eat / food",
+      "msa": "أكل / طعام",
+      "egyptian": "أكل / ماكل",
+      "levantine": "أكل / كل",
+      "gulf": "أكل / ياكل",
+      "maghrebi": "كلشي / كا"
+    },
+    {
+      "concept": "today",
+      "msa": "اليوم",
+      "egyptian": "النهارده",
+      "levantine": "اليوم / هاليوم",
+      "gulf": "اليوم / هالكيوم",
+      "maghrebi": "اليوم / هاد النهار"
+    },
+    {
+      "concept": "tomorrow",
+      "msa": "غداً",
+      "egyptian": "بكره",
+      "levantine": "بكرا",
+      "gulf": "بكرة",
+      "maghrebi": "غدا / ميد"
+    },
+    {
+      "concept": "because / so",
+      "msa": "لأن / لذلك",
+      "egyptian": "عشان",
+      "levantine": "لأنو / هيك",
+      "gulf": "عشان / لأن",
+      "maghrebi": "حيت / علاش"
+    },
+    {
+      "concept": "with / together",
+      "msa": "مع",
+      "egyptian": "مع",
+      "levantine": "مع / معو",
+      "gulf": "مع / وياه",
+      "maghrebi": "مع / دياله"
+    },
+    {
+      "concept": "my (possessive)",
+      "msa": "ي (suffix)",
+      "egyptian": "ي / بتاعي",
+      "levantine": "ي / تبعي",
+      "gulf": "ي / مالتي",
+      "maghrebi": "ديالي / ي"
+    },
+    {
+      "concept": "this",
+      "msa": "هذا / هذه",
+      "egyptian": "ده / دي",
+      "levantine": "هاد / هاي",
+      "gulf": "هذا / هذي",
+      "maghrebi": "هاد / هادي"
+    },
+    {
+      "concept": "that (distal)",
+      "msa": "ذلك / تلك",
+      "egyptian": "ده / دا",
+      "levantine": "هداك / هديك",
+      "gulf": "ذاك / ذيك",
+      "maghrebi": "داك / ديك"
+    },
+    {
+      "concept": "work / job",
+      "msa": "عمل / وظيفة",
+      "egyptian": "شغل / وظيفة",
+      "levantine": "شغل / وظيفة",
+      "gulf": "شغل / وظيفة",
+      "maghrebi": "خدمة / شغل"
+    },
+    {
+      "concept": "money",
+      "msa": "مال / نقود",
+      "egyptian": "فلوس / مصاري",
+      "levantine": "مصاري / فلوس",
+      "gulf": "فلوس / دراهم",
+      "maghrebi": "الفلوس / الدراهم"
+    },
+    {
+      "concept": "speak / talk",
+      "msa": "يتكلم / تحدث",
+      "egyptian": "بيتكلم / اتكلم",
+      "levantine": "عم يحكي / حكي",
+      "gulf": "يتكلم / يحچي",
+      "maghrebi": "كيهضر / هضر"
+    },
+    {
+      "concept": "wait",
+      "msa": "انتظر",
+      "egyptian": "استنى / استنا",
+      "levantine": "استنى / اصبر",
+      "gulf": "انتظر / استنى",
+      "maghrebi": "تسنى / استنى"
+    },
+    {
+      "concept": "let's go / move",
+      "msa": "لنذهب / تقدم",
+      "egyptian": "يلا / يا جماعة",
+      "levantine": "يلا",
+      "gulf": "يلا / هيا",
+      "maghrebi": "يالاه / هيا"
+    },
+    {
+      "concept": "understand",
+      "msa": "يفهم / أفهم",
+      "egyptian": "بفهم / فاهم",
+      "levantine": "بفهم / فاهم",
+      "gulf": "أفهم / فاهم",
+      "maghrebi": "كنفهم / فهمت"
+    },
+    {
+      "concept": "I (pronoun)",
+      "msa": "أنا",
+      "egyptian": "أنا",
+      "levantine": "أنا",
+      "gulf": "أنا",
+      "maghrebi": "أنا / آنا"
+    },
+    {
+      "concept": "you (singular)",
+      "msa": "أنت / أنتِ",
+      "egyptian": "إنت / إنتِ",
+      "levantine": "إنت / إنتِ",
+      "gulf": "إنت / إنتِ",
+      "maghrebi": "نتا / نتي"
+    },
+    {
+      "concept": "he / she / they",
+      "msa": "هو / هي / هم",
+      "egyptian": "هو / هي / هم",
+      "levantine": "هو / هي / هنّ",
+      "gulf": "هو / هي / هم",
+      "maghrebi": "هو / هي / هوما"
+    },
+    {
+      "concept": "problem / issue",
+      "msa": "مشكلة",
+      "egyptian": "مشكلة / حاجة",
+      "levantine": "مشكلة / إشي",
+      "gulf": "مشكلة / مسألة",
+      "maghrebi": "مشكل / حاجة"
+    },
+    {
+      "concept": "need (verb)",
+      "msa": "يحتاج / أحتاج",
+      "egyptian": "محتاج / لازم",
+      "levantine": "لازم / بدي",
+      "gulf": "أحتاج / لازم",
+      "maghrebi": "محتاج / خصني"
+    },
+    {
+      "concept": "possible / can",
+      "msa": "يمكن / أستطيع",
+      "egyptian": "ممكن / أقدر",
+      "levantine": "ممكن / فيني",
+      "gulf": "ممكن / أقدر",
+      "maghrebi": "ممكن / نقدر"
+    },
+    {
+      "concept": "not yet / still",
+      "msa": "لم يزل / بعد",
+      "egyptian": "لسه",
+      "levantine": "لسا / بعد",
+      "gulf": "لسا / بعد",
+      "maghrebi": "مازال / بعداش"
+    }
+  ],
+  "dialect_phonology_notes": {
+    "egyptian": {
+      "qaf": "ʔ (glottal stop) — قلب → 'alb",
+      "jeem": "g — جميل → gamil",
+      "tha": "t — ثلاثة → talata",
+      "dhal": "z — ذهب → zahab",
+      "notes": "Cairo prestige dialect. Stress on penultimate syllable. Feminine -a endings preserved."
+    },
+    "levantine": {
+      "qaf": "ʔ (glottal) in urban speech — قال → 'al",
+      "jeem": "dʒ — جميل → jmiil",
+      "tha": "t — ثلاثة → tlate",
+      "notes": "Includes Syrian, Lebanese, Palestinian, Jordanian. Stress shifts. Short vowels often drop."
+    },
+    "gulf": {
+      "qaf": "g in some regions — قال → gal",
+      "jeem": "y in some regions — جميل → ymiil",
+      "tha": "θ preserved — ثلاثة → θalaθa",
+      "notes": "KSA, UAE, Kuwait, Bahrain. Long vowels preserved. Formal register close to MSA."
+    },
+    "maghrebi": {
+      "qaf": "q or g — قال → qal / gal",
+      "jeem": "dʒ — جميل → jmiil",
+      "tha": "t — ثلاثة → tlata",
+      "notes": "Morocco, Algeria, Tunisia. Heavy Berber/French loanword influence. Verb prefix كـ for present progressive. Pronoun ديالي for possession."
+    }
   }
 }
