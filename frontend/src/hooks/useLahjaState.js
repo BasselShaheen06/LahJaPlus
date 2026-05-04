@@ -3,47 +3,56 @@ import { classifyAudio, transcribeAudio, translateText, synthesizeSpeech, blendD
 
 export function useLahjaState() {
   const [state, setState] = useState({
-    fileA: null, fileB: null,
-    classifyResultA: null, classifyResultB: null, blendResult: null, alpha: 0.5,
-    transcriptResult: null, translateResult: null, synthesisUrl: null,
-    loadingA: false, loadingB: false, transcriptLoading: false, translateLoading: false, synthesisLoading: false,
+    // Point 1 — main file (used for spectrogram, transcript, synthesis)
+    fileA: null,
+    classifyResultA: null,
+    transcriptResult: null,
+    translateResult: null,
+    synthesisUrl: null,
+    loadingA: false,
+    transcriptLoading: false,
+    translateLoading: false,
+    synthesisLoading: false,
+
+    // Point 5 — blend section has its OWN independent File A and File B
+    blendFileA: null,
+    blendFileB: null,
+    blendClassifyA: null,   // classification result for blend File A
+    blendClassifyB: null,   // classification result for blend File B
+    blendLoadingA: false,
+    blendLoadingB: false,
+    blendResult: null,
+    blendedAudioUrl: null,
+    alpha: 0.5,
+
     error: null,
   })
 
   const updateState = (updates) => setState((prev) => ({ ...prev, ...updates }))
 
+  // ── Point 1: Main file (spectrogram + transcript + synthesis) ──────────────
   const handleLoadFileA = useCallback(async (fileData) => {
-    updateState({ 
-      fileA: fileData, classifyResultA: null, transcriptResult: null, translateResult: null, synthesisUrl: null, blendResult: null,
-      loadingA: true, error: null 
+    updateState({
+      fileA: fileData,
+      classifyResultA: null,
+      transcriptResult: null,
+      translateResult: null,
+      synthesisUrl: null,
+      loadingA: true,
+      error: null,
     })
     try {
-      // 1. Classify
       const result = await classifyAudio(fileData.file)
       updateState({ classifyResultA: result, loadingA: false, transcriptLoading: true })
-      
-      // 2. Transcribe (Point 3)
+
       const transcript = await transcribeAudio(fileData.file, result.dialect)
       updateState({ transcriptResult: transcript, transcriptLoading: false })
-
     } catch (err) {
       updateState({ error: 'Processing failed: ' + err.message, loadingA: false, transcriptLoading: false })
     }
   }, [])
 
-  const handleLoadFileB = useCallback(async (fileData) => {
-    updateState({ 
-      fileB: fileData, classifyResultB: null, blendResult: null, 
-      loadingB: true, error: null 
-    })
-    try {
-      const result = await classifyAudio(fileData.file)
-      updateState({ classifyResultB: result, loadingB: false })
-    } catch (err) {
-      updateState({ error: 'Failed to classify File B', loadingB: false })
-    }
-  }, [])
-
+  // ── Point 4: Translate + Synthesize ───────────────────────────────────────
   const handleTranslate = useCallback(async (targetDialect) => {
     if (!state.transcriptResult || !state.classifyResultA) return
     updateState({ translateLoading: true, translateResult: null, synthesisUrl: null })
@@ -66,17 +75,69 @@ export function useLahjaState() {
     }
   }, [state.translateResult, state.fileA])
 
+  // ── Point 5: Blend section — independent File A ───────────────────────────
+  const handleLoadBlendFileA = useCallback(async (fileData) => {
+    updateState({
+      blendFileA: fileData,
+      blendClassifyA: null,
+      blendResult: null,
+      blendedAudioUrl: null,
+      blendLoadingA: true,
+      error: null,
+    })
+    try {
+      const result = await classifyAudio(fileData.file)
+      updateState({ blendClassifyA: result, blendLoadingA: false })
+    } catch (err) {
+      updateState({ error: 'Failed to classify Blend File A', blendLoadingA: false })
+    }
+  }, [])
+
+  // ── Point 5: Blend section — independent File B ───────────────────────────
+  const handleLoadBlendFileB = useCallback(async (fileData) => {
+    updateState({
+      blendFileB: fileData,
+      blendClassifyB: null,
+      blendResult: null,
+      blendedAudioUrl: null,
+      blendLoadingB: true,
+      error: null,
+    })
+    try {
+      const result = await classifyAudio(fileData.file)
+      updateState({ blendClassifyB: result, blendLoadingB: false })
+    } catch (err) {
+      updateState({ error: 'Failed to classify Blend File B', blendLoadingB: false })
+    }
+  }, [])
+
+  // ── Point 5: Run the blend ─────────────────────────────────────────────────
   const handleBlend = useCallback(async (newAlpha) => {
     updateState({ alpha: newAlpha })
-    if (!state.fileA?.file || !state.fileB?.file) return
+    if (!state.blendFileA?.file || !state.blendFileB?.file) return
 
     try {
-      const result = await blendDialects(state.fileA.file, state.fileB.file, newAlpha)
-      updateState({ blendResult: result })
-    } catch (err) {
-      updateState({ error: 'Failed to blend files' })
-    }
-  }, [state.fileA, state.fileB])
+      // Revoke previous blended audio URL to avoid memory leaks
+      if (state.blendedAudioUrl) URL.revokeObjectURL(state.blendedAudioUrl)
 
-  return { state, updateState, handleLoadFileA, handleLoadFileB, handleTranslate, handleSynthesize, handleBlend }
+      const result = await blendDialects(state.blendFileA.file, state.blendFileB.file, newAlpha)
+      updateState({
+        blendResult: result,
+        blendedAudioUrl: result.blendedAudioUrl || null,
+      })
+    } catch (err) {
+      updateState({ error: 'Failed to blend files: ' + err.message })
+    }
+  }, [state.blendFileA, state.blendFileB, state.blendedAudioUrl])
+
+  return {
+    state,
+    updateState,
+    handleLoadFileA,
+    handleTranslate,
+    handleSynthesize,
+    handleLoadBlendFileA,
+    handleLoadBlendFileB,
+    handleBlend,
+  }
 }
