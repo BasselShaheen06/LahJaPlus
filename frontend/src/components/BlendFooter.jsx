@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 
 const DIALECTS = [
   { key: 'egyptian', label: 'EGY', color: 'var(--dialect-egyptian)' },
@@ -33,7 +33,6 @@ export default function BlendFooter({
     }
   }
 
-  // Debounced blend
   const handleSliderChange = useCallback((e) => {
     const newAlpha = parseFloat(e.target.value)
     clearTimeout(debounceRef.current)
@@ -47,7 +46,9 @@ export default function BlendFooter({
   }, [])
 
   const blendConfidence = blendResult?.confidence || {}
-  const canBlend = classifyResultA?.ivector && classifyResultB?.ivector
+  
+  // FIXED POINT 5: Check for raw files, not ivectors
+  const canBlend = fileA && fileB
 
   return (
     <div className="blend-footer glass-card">
@@ -57,7 +58,6 @@ export default function BlendFooter({
       </div>
 
       <div className="bf-layout">
-        {/* File B picker */}
         <div className="bf-fileb">
           {fileB ? (
             <div className="bf-fileb-info fade-in">
@@ -99,7 +99,6 @@ export default function BlendFooter({
           )}
         </div>
 
-        {/* Slider + confidence */}
         <div className={`bf-slider-section ${canBlend ? '' : 'disabled'}`}>
           <div className="bf-slider-labels">
             <span>File A {classifyResultA && <span className={`badge badge-${classifyResultA.dialect}`} style={{ fontSize: '0.6rem' }}>{classifyResultA.dialect}</span>}</span>
@@ -122,7 +121,6 @@ export default function BlendFooter({
             α = {(blendResult?.alpha ?? alpha).toFixed(2)}
           </div>
 
-          {/* Mini confidence bars */}
           {blendResult && (
             <div className="bf-mini-bars fade-in">
               {DIALECTS.map(d => (
@@ -150,145 +148,50 @@ export default function BlendFooter({
 }
 
 const styles = `
-  .blend-footer {
-    padding: var(--space-lg);
-  }
-  .bf-layout {
-    display: flex;
-    gap: var(--space-xl);
-    align-items: flex-start;
-  }
-  @media (max-width: 800px) {
-    .bf-layout {
-      flex-direction: column;
-    }
-  }
-  .bf-fileb {
-    flex: 0 0 240px;
-  }
+  .blend-footer { padding: var(--space-lg); }
+  .bf-layout { display: flex; gap: var(--space-xl); align-items: flex-start; }
+  @media (max-width: 800px) { .bf-layout { flex-direction: column; } }
+  .bf-fileb { flex: 0 0 240px; }
   .bf-fileb-drop {
-    border: 2px dashed var(--border-default);
-    border-radius: var(--radius-md);
-    padding: var(--space-md) var(--space-lg);
-    text-align: center;
-    cursor: pointer;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    transition: all var(--duration-normal) var(--ease-out);
+    border: 2px dashed var(--border-default); border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-lg); text-align: center; cursor: pointer;
+    font-size: 0.85rem; color: var(--text-muted); transition: all var(--duration-normal) var(--ease-out);
   }
   .bf-fileb-drop:hover, .bf-fileb-drop.dragging {
-    border-color: var(--teal-500);
-    background: var(--teal-glow);
-    color: var(--teal-300);
+    border-color: var(--teal-500); background: var(--teal-glow); color: var(--teal-300);
   }
   .bf-fileb-info {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-    background: var(--bg-card);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-subtle);
+    display: flex; align-items: center; gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md); background: var(--bg-card);
+    border-radius: var(--radius-md); border: 1px solid var(--border-subtle);
   }
   .bf-fileb-icon { font-size: 1.2rem; }
-  .bf-fileb-details {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
+  .bf-fileb-details { flex: 1; display: flex; flex-direction: column; gap: 2px; }
   .bf-fileb-name {
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 140px;
+    font-size: 0.8rem; font-weight: 500; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;
   }
   .bf-change-btn {
-    font-size: 0.75rem;
-    color: var(--teal-400);
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-weight: 500;
+    font-size: 0.75rem; color: var(--teal-400); background: none; border: none; cursor: pointer; font-weight: 500;
   }
-  /* Slider section */
-  .bf-slider-section {
-    flex: 1;
-  }
-  .bf-slider-section.disabled {
-    opacity: 0.3;
-    pointer-events: none;
-  }
-  .bf-slider-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-bottom: 6px;
-  }
-  .bf-slider-labels span {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
+  .bf-slider-section { flex: 1; }
+  .bf-slider-section.disabled { opacity: 0.3; pointer-events: none; }
+  .bf-slider-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; }
+  .bf-slider-labels span { display: flex; align-items: center; gap: 6px; }
   .bf-slider {
-    width: 100%;
-    height: 6px;
-    -webkit-appearance: none;
-    appearance: none;
+    width: 100%; height: 6px; -webkit-appearance: none; appearance: none;
     background: linear-gradient(90deg, var(--dialect-egyptian), var(--dialect-gulf));
-    border-radius: var(--radius-full);
-    outline: none;
-    cursor: pointer;
+    border-radius: var(--radius-full); outline: none; cursor: pointer;
   }
   .bf-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--text-primary);
-    box-shadow: 0 0 8px rgba(0,0,0,0.3);
-    cursor: grab;
+    -webkit-appearance: none; appearance: none; width: 18px; height: 18px;
+    border-radius: 50%; background: var(--text-primary); box-shadow: 0 0 8px rgba(0,0,0,0.3); cursor: grab;
   }
-  .bf-slider::-webkit-slider-thumb:active {
-    cursor: grabbing;
-    transform: scale(1.1);
-  }
-  .bf-alpha-value {
-    text-align: center;
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin-top: 4px;
-  }
-  /* Mini bars */
-  .bf-mini-bars {
-    display: flex;
-    gap: var(--space-sm);
-    margin-top: var(--space-md);
-  }
-  .bf-mini-bar {
-    flex: 1;
-  }
-  .bf-mini-bar-track {
-    height: 4px;
-    background: var(--bg-card);
-    border-radius: var(--radius-full);
-    overflow: hidden;
-    margin-bottom: 3px;
-  }
-  .bf-mini-bar-fill {
-    height: 100%;
-    border-radius: var(--radius-full);
-    transition: width 0.3s var(--ease-out);
-  }
-  .bf-mini-label {
-    font-size: 0.65rem;
-    color: var(--text-muted);
-    font-family: var(--font-mono);
-  }
+  .bf-slider::-webkit-slider-thumb:active { cursor: grabbing; transform: scale(1.1); }
+  .bf-alpha-value { text-align: center; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+  .bf-mini-bars { display: flex; gap: var(--space-sm); margin-top: var(--space-md); }
+  .bf-mini-bar { flex: 1; }
+  .bf-mini-bar-track { height: 4px; background: var(--bg-card); border-radius: var(--radius-full); overflow: hidden; margin-bottom: 3px; }
+  .bf-mini-bar-fill { height: 100%; border-radius: var(--radius-full); transition: width 0.3s var(--ease-out); }
+  .bf-mini-label { font-size: 0.65rem; color: var(--text-muted); font-family: var(--font-mono); }
 `

@@ -22,202 +22,55 @@ export default function SynthesisBar({
   if (!transcriptReady) {
     return (
       <div className="synthesis-bar glass-card">
-        <div className="section-header">
-          <span className="icon">🔄</span>
-          <h2>Dialect Conversion</h2>
-        </div>
-        <div className="empty-state" style={{ padding: '24px' }}>
-          <p>Complete transcription first to enable dialect conversion</p>
-        </div>
-        <style>{styles}</style>
+        <div className="section-header"><h2>🔄 Dialect Conversion</h2></div>
+        <div className="empty-state"><p>Complete transcription first to enable conversion.</p></div>
       </div>
     )
   }
 
   return (
     <div className="synthesis-bar glass-card fade-in">
-      <div className="section-header">
-        <span className="icon">🔄</span>
-        <h2>Dialect Conversion</h2>
-      </div>
+      <div className="section-header"><h2>🔄 Dialect Conversion</h2></div>
 
-      {/* Dialect selector buttons */}
-      <div className="sb-dialects">
-        <span className="sb-label">Convert to:</span>
-        <div className="sb-buttons">
-          {DIALECTS.map(d => (
-            <button
-              key={d.key}
-              className={`btn sb-dialect-btn ${
-                d.key === detectedDialect ? 'current' :
-                d.key === selectedDialect ? 'selected' : ''
-              }`}
-              onClick={() => handleDialectClick(d.key)}
-              disabled={d.key === detectedDialect || translateLoading}
-              id={`dialect-btn-${d.key}`}
-            >
-              <span className="sb-btn-label">{d.label}</span>
-              <span className="sb-btn-ar">{d.labelAr}</span>
-              {d.key === detectedDialect && <span className="sb-current-tag">(current)</span>}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Translation result */}
-      {translateLoading && (
-        <div className="sb-translate-preview">
-          <div className="spinner" style={{ width: 20, height: 20, margin: '12px auto' }} />
-          <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Translating...</p>
-        </div>
-      )}
-
-      {translateResult && !translateLoading && (
-        <div className="sb-translate-preview fade-in">
-          <div className="sb-step">
-            <span className="sb-step-label">MSA (Fusha)</span>
-            <p className="sb-step-text arabic-text" dir="rtl">{translateResult.msa_text}</p>
-          </div>
-          <div className="sb-arrow">→</div>
-          <div className="sb-step">
-            <span className="sb-step-label">{selectedDialect}</span>
-            <p className="sb-step-text arabic-text" dir="rtl">{translateResult.target_text}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Synthesize button + audio player */}
-      {translateResult && !translateLoading && (
-        <div className="sb-synth-row">
+      <div className="sb-dialects" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
+        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', alignSelf: 'center' }}>Convert to:</span>
+        {DIALECTS.map(d => (
           <button
-            className="btn btn-primary"
-            onClick={onSynthesize}
-            disabled={synthesisLoading}
-            id="synthesize-btn"
+            key={d.key}
+            className={`btn ${d.key === detectedDialect ? 'disabled' : d.key === selectedDialect ? 'btn-primary' : ''}`}
+            onClick={() => handleDialectClick(d.key)}
+            disabled={d.key === detectedDialect || translateLoading}
+            style={d.key === detectedDialect ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
           >
-            {synthesisLoading ? (
-              <>
-                <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
-                Synthesizing...
-              </>
-            ) : (
-              <>🔊 Synthesize Speech</>
-            )}
+            {d.label} <span style={{ fontFamily: 'var(--font-arabic)', fontSize: '0.8rem', marginLeft: '6px' }}>{d.labelAr}</span>
           </button>
+        ))}
+      </div>
 
-          {synthesisUrl && (
-            <audio controls src={synthesisUrl} className="sb-audio fade-in" id="synthesis-audio">
-              Your browser does not support the audio element.
-            </audio>
-          )}
+      {translateLoading && <div className="spinner" style={{ margin: '20px auto' }} />}
+
+      {translateResult && !translateLoading && (
+        <div className="sb-translate-preview fade-in" style={{ background: 'var(--bg-card)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', gap: '24px' }}>
+            <div style={{ flex: 1 }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>MSA (Pivot)</span>
+              <p className="arabic-text" dir="rtl" style={{ fontSize: '1.1rem', marginTop: '4px' }}>{translateResult.msa_text}</p>
+            </div>
+            <div style={{ alignSelf: 'center', color: 'var(--teal-500)', fontSize: '1.5rem' }}>→</div>
+            <div style={{ flex: 1 }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--teal-400)' }}>{selectedDialect.toUpperCase()}</span>
+              <p className="arabic-text" dir="rtl" style={{ fontSize: '1.1rem', marginTop: '4px' }}>{translateResult.target_text}</p>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '20px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <button className="btn btn-primary" onClick={() => onSynthesize(selectedDialect)} disabled={synthesisLoading}>
+              {synthesisLoading ? 'Synthesizing Voice...' : '🔊 Synthesize Speech'}
+            </button>
+            {synthesisUrl && <audio controls src={synthesisUrl} className="fade-in" style={{ flex: 1, height: '40px' }} />}
+          </div>
         </div>
       )}
-
-      <style>{styles}</style>
     </div>
   )
 }
-
-const styles = `
-  .synthesis-bar {
-    padding: var(--space-lg);
-  }
-  .sb-dialects {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    flex-wrap: wrap;
-  }
-  .sb-label {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-    white-space: nowrap;
-  }
-  .sb-buttons {
-    display: flex;
-    gap: var(--space-sm);
-    flex-wrap: wrap;
-  }
-  .sb-dialect-btn {
-    flex-direction: column;
-    padding: 8px 16px;
-    gap: 2px;
-    min-width: 100px;
-  }
-  .sb-btn-label {
-    font-size: 0.85rem;
-  }
-  .sb-btn-ar {
-    font-family: var(--font-arabic);
-    font-size: 0.75rem;
-    color: var(--text-muted);
-  }
-  .sb-dialect-btn.current {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-  .sb-dialect-btn.selected {
-    border-color: var(--teal-500);
-    background: var(--teal-glow);
-  }
-  .sb-current-tag {
-    font-size: 0.65rem;
-    color: var(--text-muted);
-  }
-  .sb-translate-preview {
-    margin-top: var(--space-md);
-    display: flex;
-    align-items: stretch;
-    gap: var(--space-md);
-    background: var(--bg-card);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
-    border: 1px solid var(--border-subtle);
-  }
-  @media (max-width: 700px) {
-    .sb-translate-preview {
-      flex-direction: column;
-    }
-    .sb-arrow {
-      transform: rotate(90deg);
-    }
-  }
-  .sb-step {
-    flex: 1;
-  }
-  .sb-step-label {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-    font-weight: 600;
-    display: block;
-    margin-bottom: 4px;
-  }
-  .sb-step-text {
-    font-size: 1.1rem;
-    color: var(--text-primary);
-    line-height: 1.8;
-  }
-  .sb-arrow {
-    display: flex;
-    align-items: center;
-    color: var(--teal-500);
-    font-size: 1.2rem;
-    font-weight: 700;
-  }
-  .sb-synth-row {
-    margin-top: var(--space-md);
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    flex-wrap: wrap;
-  }
-  .sb-audio {
-    flex: 1;
-    min-width: 200px;
-    height: 36px;
-    border-radius: var(--radius-md);
-  }
-`

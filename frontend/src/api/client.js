@@ -1,54 +1,38 @@
-/**
- * api/client.js — API client for all backend endpoints
- *
- * All requests go through /api prefix (Vite proxy strips it and forwards to FastAPI).
- */
-
 import axios from 'axios'
 
 const api = axios.create({
   baseURL: '/api',
-  timeout: 30000,
+  timeout: 60000,
 })
 
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('API error:', error.response?.data || error.message)
-    return Promise.reject(error)
-  }
-)
-
-/**
- * POST /classify — Upload audio, get dialect classification
- */
 export async function classifyAudio(file) {
   const formData = new FormData()
   formData.append('file', file)
-  const { data } = await api.post('/classify', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 60000,
-  })
+  const { data } = await api.post('/classify', formData)
   return data
 }
 
-/**
- * POST /transcribe — Upload audio + dialect, get word-level transcript
- */
+// Point 5: Sending raw audio files to backend for time-domain summation
+export async function blendDialects(fileA, fileB, alpha) {
+  const formData = new FormData()
+  formData.append('file_a', fileA)
+  formData.append('file_b', fileB)
+  formData.append('alpha', alpha)
+
+  const { data } = await api.post('/blend', formData)
+  return data
+}
+
+// Point 3
 export async function transcribeAudio(file, dialect) {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('dialect', dialect)
-  const { data } = await api.post('/transcribe', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 60000,
-  })
+  const { data } = await api.post('/transcribe', formData)
   return data
 }
 
-/**
- * POST /translate — Dialect text → MSA → target dialect
- */
+// Point 4
 export async function translateText(text, sourceDialect, targetDialect) {
   const { data } = await api.post('/translate', {
     text,
@@ -58,9 +42,7 @@ export async function translateText(text, sourceDialect, targetDialect) {
   return data
 }
 
-/**
- * POST /synthesize — Text + voice ref → synthesized audio
- */
+// Point 4
 export async function synthesizeSpeech(text, targetDialect, voiceRefFile) {
   const formData = new FormData()
   formData.append('text', text)
@@ -68,32 +50,18 @@ export async function synthesizeSpeech(text, targetDialect, voiceRefFile) {
   formData.append('voice_ref', voiceRefFile)
 
   const response = await api.post('/synthesize', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-    responseType: 'blob',
-    timeout: 60000,
+    responseType: 'blob'
   })
 
   // Check if response is JSON (error) or audio blob
   if (response.headers['content-type']?.includes('application/json')) {
-    const text = await response.data.text()
-    const json = JSON.parse(text)
+    const textData = await response.data.text()
+    const json = JSON.parse(textData)
     if (json.error) throw new Error(json.message || json.error)
     return null
   }
 
   return URL.createObjectURL(response.data)
-}
-
-/**
- * POST /blend — Interpolate two I-vectors
- */
-export async function blendDialects(ivectorA, ivectorB, alpha) {
-  const { data } = await api.post('/blend', {
-    ivector_a: ivectorA,
-    ivector_b: ivectorB,
-    alpha,
-  })
-  return data
 }
 
 export default api
