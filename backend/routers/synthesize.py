@@ -13,12 +13,16 @@ load_dotenv()
 router = APIRouter()
 
 # Mapping to ElevenLabs' official PREMADE voices (guaranteed to work on free tier)
+# backend/routers/synthesize.py
+
+# backend/routers/synthesize.py
+
 DIALECT_VOICES = {
-    "egyptian": "pNInz6obpgDQGcFmaJgB",
-    "levantine": "EXAVITQu4vr4xnSDxMaL",
-    "gulf": "pNInz6obpgDQGcFmaJgB",      # Deep, resonant Adam voice
-    "maghrebi": "zrHiDhphv9ZnVXBqCLjz",   # Mimi (Better for Maghrebi speed)
-    "fusha": "pNInz6obpgDQGcFmaJgB"
+    "egyptian": "pNInz6obpgDQGcFmaJgB",   # Adam (Solid for Egyptian)
+    "levantine": "EXAVITQu4vr4xnSDxMaL",  # Bella (Solid for Shami)
+    "gulf": "pNInz6obpgDQGcFmaJgB",       # Adam (Deep tone for KSA)
+    "maghrebi": "9BWtsmkyCfEU9m8uXm0X",    # Aria (Universal ID - Works for Maghrebi)
+    "fusha": "pNInz6obpgDQGcFmaJgB"        # Adam
 }
 
 @router.post("/synthesize")
