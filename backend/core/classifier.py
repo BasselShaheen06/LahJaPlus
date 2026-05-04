@@ -1,38 +1,35 @@
 """
-core/classifier.py — ML Inference: GMM-UBM → Supervector → PCA → SVM
+core/classifier.py — ML Inference using pipeline.pkl
+
+pipeline.pkl is a self-contained sklearn Pipeline:
+  StandardScaler(135) → SelectKBest(k=60) → SVC(rbf, probability=True)
 
 predict():       Single-file dialect classification
-blend_predict(): Two-file I-vector interpolation
-
-Falls back to mock mode when .pkl model files are not present.
 """
 
 import os
-import json
 import pickle
+import json
 import numpy as np
 
-LABELS = ["egyptian", "levantine", "gulf", "maghrebi"]
+# pipeline.pkl class indices → dialect labels used by the frontend
+# Training order: [EGY=0, KSA=1, LEB=2, MOR=3]
+IDX2LABEL = {
+    0: "egyptian",   # EGY
+    1: "gulf",       # KSA
+    2: "levantine",  # LEB
+    3: "maghrebi",   # MOR
+}
+LABELS = [IDX2LABEL[i] for i in range(4)]
+
 MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
 
-
-def _load_models():
-    """Load all ML model artifacts. Returns dict or None if files missing."""
-    required = ["scaler.pkl", "ubm.pkl", "pca.pkl", "svm_classifier.pkl"]
-    for f in required:
-        if not os.path.exists(os.path.join(MODELS_DIR, f)):
-            return None
-
-    models = {}
-    models["scaler"] = pickle.load(open(os.path.join(MODELS_DIR, "scaler.pkl"), "rb"))
-    models["ubm"] = pickle.load(open(os.path.join(MODELS_DIR, "ubm.pkl"), "rb"))
-    models["pca"] = pickle.load(open(os.path.join(MODELS_DIR, "pca.pkl"), "rb"))
-    models["svm"] = pickle.load(open(os.path.join(MODELS_DIR, "svm_classifier.pkl"), "rb"))
-    return models
+# Global pipeline — loaded once at startup
+_pipeline = None
+dialect_profiles = {}
 
 
 def _load_profiles():
-    """Load dialect_profiles.json for mock mode and explainability."""
     path = os.path.join(MODELS_DIR, "dialect_profiles.json")
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
@@ -40,130 +37,76 @@ def _load_profiles():
     return {}
 
 
-# Global model state — set by main.py lifespan
-ml_models = {}
-dialect_profiles = {}
-
-
 def init_models():
-    """Called at startup. Loads models or sets mock mode."""
-    global ml_models, dialect_profiles
+    """Called at startup by main.py lifespan. Loads pipeline.pkl."""
+    global _pipeline, dialect_profiles
     dialect_profiles = _load_profiles()
-    loaded = _load_models()
-    if loaded:
-        ml_models.update(loaded)
-        ml_models["mock"] = False
-        print("[classifier] Models loaded successfully")
+
+    pipeline_path = os.path.join(MODELS_DIR, "pipeline.pkl")
+    if os.path.exists(pipeline_path):
+        with open(pipeline_path, "rb") as f:
+            _pipeline = pickle.load(f)
+        print("[classifier] pipeline.pkl loaded — steps:",
+              [name for name, _ in _pipeline.steps])
     else:
-        ml_models["mock"] = True
-        print("[classifier] Model files not found — running in MOCK mode")
+        _pipeline = None
+        print("[classifier] pipeline.pkl not found — running in MOCK mode")
 
 
-def _extract_supervector(x_scaled):
-    """Extract supervector from scaled feature vector using UBM posteriors."""
-    ubm = ml_models["ubm"]
-    posteriors = ubm.predict_proba(x_scaled)[0]  # (n_components,)
-    n_components = len(posteriors)
-    residuals = []
-    for k in range(n_components):
-        residual = posteriors[k] * (x_scaled[0] - ubm.means_[k])
-        residuals.append(residual)
-    return np.hstack(residuals)  # (n_components * feature_dim,)
-
-
-def predict(feature_vector):
+def predict(feature_vector: np.ndarray) -> dict:
     """
-    Classify a 128-dim feature vector.
+    Classify a 135-dim feature vector.
 
-    Returns dict with: dialect, confidence, ivector
+    Returns dict with: dialect (str), confidence (dict[str->float])
     """
-    if ml_models.get("mock", True):
+    if _pipeline is None:
         return _mock_predict(feature_vector)
 
-    # 1. Scale
-    x_scaled = ml_models["scaler"].transform(feature_vector.reshape(1, -1))
+    x = np.nan_to_num(feature_vector, nan=0.0).reshape(1, -1)  # (1, 135)
 
-    # 2. Supervector via UBM
-    supervector = _extract_supervector(x_scaled)
-
-    # 3. PCA → I-vector
-    ivector = ml_models["pca"].transform(supervector.reshape(1, -1))  # (1, 50)
-
-    # 4. SVM classify
-    proba = ml_models["svm"].predict_proba(ivector)[0]
-    pred = ml_models["svm"].predict(ivector)[0]
+    # One-line inference — pipeline handles scaling + selection + SVC
+    proba = _pipeline.predict_proba(x)[0]   # (4,)
+    pred  = int(_pipeline.predict(x)[0])    # 0..3
 
     return {
-        "dialect": LABELS[pred],
-        "confidence": {LABELS[i]: round(float(p), 4) for i, p in enumerate(proba)},
-        "ivector": ivector[0].tolist(),
+        "dialect":    IDX2LABEL[pred],
+        "confidence": {IDX2LABEL[i]: round(float(p), 4)
+                       for i, p in enumerate(proba)},
     }
 
 
-def blend_predict(ivector_a, ivector_b, alpha):
+def blend_predict(feature_vector_blend: np.ndarray) -> dict:
     """
-    Interpolate two I-vectors and classify the blend.
-    v_blend = α·v_A + (1−α)·v_B
+    Classify the blended audio's feature vector.
+    (blend.py already blends audio in time-domain then calls predict())
     """
-    v_a = np.array(ivector_a)
-    v_b = np.array(ivector_b)
-    v_blend = alpha * v_a + (1 - alpha) * v_b
-
-    if ml_models.get("mock", True):
-        return _mock_blend(alpha)
-
-    proba = ml_models["svm"].predict_proba(v_blend.reshape(1, -1))[0]
-    pred = ml_models["svm"].predict(v_blend.reshape(1, -1))[0]
-
-    return {
-        "dialect": LABELS[pred],
-        "confidence": {LABELS[i]: round(float(p), 4) for i, p in enumerate(proba)},
-        "alpha": alpha,
-    }
+    return predict(feature_vector_blend)
 
 
 # ─────────────────────────────────────────────────────────────
-# Mock Predictions (when models not loaded)
+# Mock (when pipeline.pkl is absent)
 # ─────────────────────────────────────────────────────────────
 
-def _mock_predict(feature_vector):
-    """Generate realistic mock prediction based on feature heuristics."""
-    npvi = feature_vector[120] if len(feature_vector) > 120 else 45.0
+def _mock_predict(feature_vector: np.ndarray) -> dict:
+    """Heuristic mock based on nPVI (index 131 in the 135-dim vector)."""
+    npvi = float(feature_vector[131]) if len(feature_vector) > 131 else 45.0
 
     if npvi > 55:
-        idx = 3  # maghrebi
+        idx = 3   # maghrebi
     elif npvi > 45:
-        idx = 2  # gulf
+        idx = 1   # gulf
     elif npvi > 38:
-        idx = 1  # levantine
+        idx = 2   # levantine
     else:
-        idx = 0  # egyptian
+        idx = 0   # egyptian
 
     conf = [0.05, 0.05, 0.05, 0.05]
     conf[idx] = 0.85
-    remaining = 0.15 - sum(c for i, c in enumerate(conf) if i != idx)
     for i in range(4):
         if i != idx:
-            conf[i] += remaining / 3
-
-    mock_ivector = np.random.randn(50).tolist()
+            conf[i] += (0.15 - 0.15) / 3   # distribute remainder
 
     return {
-        "dialect": LABELS[idx],
-        "confidence": {LABELS[i]: round(c, 4) for i, c in enumerate(conf)},
-        "ivector": mock_ivector,
+        "dialect":    IDX2LABEL[idx],
+        "confidence": {IDX2LABEL[i]: round(conf[i], 4) for i in range(4)},
     }
-
-
-def _mock_blend(alpha):
-    """Generate mock blend result based on alpha."""
-    eg = alpha * 0.85 + (1 - alpha) * 0.05
-    lev = alpha * 0.05 + (1 - alpha) * 0.05
-    gulf = alpha * 0.05 + (1 - alpha) * 0.85
-    mag = alpha * 0.05 + (1 - alpha) * 0.05
-    total = eg + lev + gulf + mag
-    conf = {"egyptian": round(eg/total, 4), "levantine": round(lev/total, 4),
-            "gulf": round(gulf/total, 4), "maghrebi": round(mag/total, 4)}
-
-    best = max(conf, key=conf.get)
-    return {"dialect": best, "confidence": conf, "alpha": alpha}

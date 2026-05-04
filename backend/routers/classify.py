@@ -48,18 +48,15 @@ async def classify_audio(file: UploadFile = File(...)):
         result = predict(features["vector"])
 
         # Build response
+        # Build response
         response = {
             "dialect": result["dialect"],
             "confidence": result["confidence"],
-            "ivector": result["ivector"],
             "features": {
                 "npvi": features["npvi"],
                 "f0_mean": features["f0_mean"],
                 "f0_std": features["f0_std"],
                 "voiced_frac": features["voiced_frac"],
-                "qaf_dominant": features["phoneme_data"]["qaf_dominant"],
-                "jeem_dominant": features["phoneme_data"]["jeem_dominant"],
-                "phoneme_markers": features["phoneme_data"]["markers"],
             },
             "spectrogram_data": {
                 "mel_spectrogram": features["mel_spectrogram"],
