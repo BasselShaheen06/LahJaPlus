@@ -16,8 +16,8 @@ router = APIRouter()
 DIALECT_VOICES = {
     "egyptian": "pNInz6obpgDQGcFmaJgB",
     "levantine": "EXAVITQu4vr4xnSDxMaL",
-    "gulf": "pNInz6obpgDQGcFmaJgB",
-    "maghrebi": "zrHiDhphv9ZnVXBqCLjz",
+    "gulf": "pNInz6obpgDQGcFmaJgB",      # Deep, resonant Adam voice
+    "maghrebi": "zrHiDhphv9ZnVXBqCLjz",   # Mimi (Better for Maghrebi speed)
     "fusha": "pNInz6obpgDQGcFmaJgB"
 }
 

@@ -3,7 +3,7 @@ import { useState } from 'react'
 const DIALECTS = [
   { key: 'egyptian', label: 'Egyptian', labelAr: 'مصري' },
   { key: 'levantine', label: 'Levantine', labelAr: 'شامي' },
-  { key: 'gulf', label: 'Gulf', labelAr: 'خليجي' },
+  { key: 'gulf', label: 'Gulf (KSA)', labelAr: 'خليجي' },
   { key: 'maghrebi', label: 'Maghrebi', labelAr: 'مغاربي' },
   { key: 'fusha', label: 'Standard', labelAr: 'فصحى' },
 ]
