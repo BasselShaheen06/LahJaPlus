@@ -94,6 +94,77 @@ def compute_mel_spectrogram(audio: np.ndarray, sr: int = SR,
     
     return mel_norm
 
+# ─────────────────────────────────────────────────────────────
+# Audio Preprocessing — tile short clips to 25s (matches training)
+# ─────────────────────────────────────────────────────────────
+
+TARGET_DUR_SEC  = 25.0
+TARGET_SAMPLES  = int(TARGET_DUR_SEC * SR)   # 400,000 samples
+NYQUIST         = SR / 2.0                   # 8000 Hz
+
+
+def preprocess_audio(audio: np.ndarray, sr: int = SR) -> np.ndarray:
+    """
+    Replicate the exact preprocessing used during training:
+      1. Resample to 16 kHz mono (librosa.load already does this)
+      2. Peak-normalize
+      3. Trim leading/trailing silence (top_db=25)
+      4. Tile if shorter than 25s, trim to middle if longer
+      5. Re-normalize
+    Returns np.ndarray of shape (400000,) dtype float32
+    """
+    audio = audio.astype(np.float32)
+
+    # Peak-normalize
+    peak = np.max(np.abs(audio))
+    if peak > 1e-8:
+        audio = audio / peak
+
+    # Trim silence
+    audio_trimmed, _ = librosa.effects.trim(audio, top_db=25)
+    if len(audio_trimmed) < sr * 0.5:   # fallback if over-trimmed
+        audio_trimmed = audio
+
+    # Tile or trim to exact TARGET_SAMPLES
+    if len(audio_trimmed) < TARGET_SAMPLES:
+        repeats = int(np.ceil(TARGET_SAMPLES / len(audio_trimmed)))
+        audio_final = np.tile(audio_trimmed, repeats)[:TARGET_SAMPLES]
+    else:
+        start = (len(audio_trimmed) - TARGET_SAMPLES) // 2
+        audio_final = audio_trimmed[start : start + TARGET_SAMPLES]
+
+    # Final normalize
+    peak = np.max(np.abs(audio_final))
+    if peak > 1e-8:
+        audio_final = audio_final / peak
+
+    return audio_final.astype(np.float32)
+
+
+# ─────────────────────────────────────────────────────────────
+# Spectral — centroid, bandwidth, rolloff, ZCR (8 dims)
+# ─────────────────────────────────────────────────────────────
+
+def extract_spectral(audio: np.ndarray, sr: int = SR) -> np.ndarray:
+    """
+    Spectral texture features, all normalized by Nyquist so they are in [0,1].
+    Returns shape (8,): [mean, var] × [centroid, bandwidth, rolloff, ZCR]
+    """
+    centroid  = librosa.feature.spectral_centroid(
+                    y=audio, sr=sr, n_fft=N_FFT,
+                    hop_length=HOP_LENGTH) / NYQUIST
+    bandwidth = librosa.feature.spectral_bandwidth(
+                    y=audio, sr=sr, n_fft=N_FFT,
+                    hop_length=HOP_LENGTH) / NYQUIST
+    rolloff   = librosa.feature.spectral_rolloff(
+                    y=audio, sr=sr, n_fft=N_FFT,
+                    hop_length=HOP_LENGTH, roll_percent=0.85) / NYQUIST
+    zcr       = librosa.feature.zero_crossing_rate(
+                    y=audio, frame_length=WIN_LENGTH,
+                    hop_length=HOP_LENGTH)
+
+    mat = np.vstack([centroid, bandwidth, rolloff, zcr])  # (4, T)
+    return np.hstack([mat.mean(axis=1), mat.var(axis=1)]) # (8,)
 
 # ─────────────────────────────────────────────────────────────
 # SDC — Shifted Delta Cepstra (42 dims)
@@ -245,7 +316,12 @@ def extract_prosody(audio: np.ndarray, sr: int = SR) -> dict:
 
     npvi = compute_npvi(np.array(segment_energies))
 
-    vector = np.array([f0_mean, f0_std, npvi, voiced_fraction, rms_mean])
+    f0_range = float(np.percentile(f0_arr, 90) - np.percentile(f0_arr, 10))
+    rms_std  = float(np.std(rms))
+
+    vector = np.array([f0_mean, f0_std, f0_range,
+                       npvi, voiced_fraction,
+                       rms_mean, rms_std], dtype=np.float32)
 
     return {
         "vector": vector,
@@ -277,27 +353,27 @@ def extract_all_features(wav_path: str) -> dict:
             "voiced_frac":  float
             "duration_sec": float
     """
-    # Load and resample
-    audio, sr = librosa.load(wav_path, sr=SR, mono=True)
+    # Load and resample to 16kHz mono
+    audio_raw, sr = librosa.load(wav_path, sr=SR, mono=True)
 
-    # Trim silence
-    audio, _ = librosa.effects.trim(audio, top_db=20)
+    # Apply training-identical preprocessing (tile to 25s)
+    audio = preprocess_audio(audio_raw, sr)
 
-    duration_sec = len(audio) / sr
+    duration_sec = len(audio_raw) / sr   # report original duration
 
-    # Extract all feature groups
-    mfcc_vec = extract_mfcc(audio, sr)        # (78,)
-    sdc_vec = extract_sdc(audio, sr)          # (42,)
-    prosody = extract_prosody(audio, sr)      # dict with "vector" (5,)
-    phoneme_data = detect_phonemes(audio, sr) # dict with "feature_vector" (3,)
+    # Extract all feature groups — must produce exactly 135 dims
+    mfcc_vec    = extract_mfcc(audio, sr)      # (78,)
+    sdc_vec     = extract_sdc(audio, sr)       # (42,)
+    spectral    = extract_spectral(audio, sr)  # (8,)
+    prosody     = extract_prosody(audio, sr)   # dict with "vector" (7,)
 
-    # Concatenate to 128-dim vector
+    # Concatenate to 135-dim vector [0:78 MFCC | 78:120 SDC | 120:128 Spectral | 128:135 Prosody]
     feature_vector = np.concatenate([
-        mfcc_vec,                              # 78
-        sdc_vec,                               # 42
-        prosody["vector"],                     # 5
-        phoneme_data["feature_vector"],        # 3
-    ])  # Total: 128
+        mfcc_vec,           # 78
+        sdc_vec,            # 42
+        spectral,           # 8
+        prosody["vector"],  # 7
+    ])  # Total: 135
 
     # Replace any NaN with 0
     feature_vector = np.nan_to_num(feature_vector, nan=0.0)
@@ -313,7 +389,6 @@ def extract_all_features(wav_path: str) -> dict:
         "mfcc_frames": mfcc_frames.tolist(),
         "mel_spectrogram": mel_spec.tolist(),
         "f0_contour": prosody["f0_contour"],
-        "phoneme_data": phoneme_data,
         "npvi": prosody["npvi"],
         "f0_mean": prosody["f0_mean"],
         "f0_std": prosody["f0_std"],
