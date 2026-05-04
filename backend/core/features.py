@@ -71,6 +71,31 @@ def compute_mfcc_frames(audio: np.ndarray, sr: int = SR) -> np.ndarray:
 
 
 # ─────────────────────────────────────────────────────────────
+# Mel Spectrogram — for visualization (Task 1)
+# ─────────────────────────────────────────────────────────────
+
+def compute_mel_spectrogram(audio: np.ndarray, sr: int = SR,
+                             n_mels: int = 80, fmax: int = 8000) -> np.ndarray:
+    """
+    Compute a log-power mel spectrogram for visualization.
+    
+    Returns shape (n_mels, T) in dB scale, normalized to [0, 1] for rendering.
+    """
+    mel = librosa.feature.melspectrogram(
+        y=audio, sr=sr, n_mels=n_mels,
+        n_fft=N_FFT, hop_length=HOP_LENGTH, win_length=WIN_LENGTH,
+        fmax=fmax,
+    )
+    # Convert to dB (log scale)
+    mel_db = librosa.power_to_db(mel, ref=np.max)  # dB, max=0, min≈-80
+    
+    # Normalize to [0, 1] for frontend color mapping
+    mel_norm = (mel_db - mel_db.min()) / (mel_db.max() - mel_db.min() + 1e-8)
+    
+    return mel_norm
+
+
+# ─────────────────────────────────────────────────────────────
 # SDC — Shifted Delta Cepstra (42 dims)
 # ─────────────────────────────────────────────────────────────
 
@@ -280,9 +305,13 @@ def extract_all_features(wav_path: str) -> dict:
     # MFCC frames for visualization
     mfcc_frames = compute_mfcc_frames(audio, sr)
 
+    # Mel spectrogram for Task 1 visualization
+    mel_spec = compute_mel_spectrogram(audio, sr)
+
     return {
         "vector": feature_vector,
         "mfcc_frames": mfcc_frames.tolist(),
+        "mel_spectrogram": mel_spec.tolist(),
         "f0_contour": prosody["f0_contour"],
         "phoneme_data": phoneme_data,
         "npvi": prosody["npvi"],
