@@ -14,10 +14,11 @@ router = APIRouter()
 
 # Mapping to ElevenLabs' official PREMADE voices (guaranteed to work on free tier)
 DIALECT_VOICES = {
-    "egyptian": "pNInz6obpgDQGcFmaJgB",  # Adam (Premade - Deep, resonant)
-    "levantine": "EXAVITQu4vr4xnSDxMaL", # Bella (Premade - Soft, American but speaks Arabic well)
-    "gulf": "VR6AewLTigWG4xSOukaG",      # Rachel (Premade - Calm, conversational)
-    "maghrebi": "ErXwobaYiN019PkySvjV"   # Antoni (Premade - Well-rounded, clear)
+    "egyptian": "pNInz6obpgDQGcFmaJgB",
+    "levantine": "EXAVITQu4vr4xnSDxMaL",
+    "gulf": "pNInz6obpgDQGcFmaJgB",
+    "maghrebi": "zrHiDhphv9ZnVXBqCLjz",
+    "fusha": "pNInz6obpgDQGcFmaJgB"
 }
 
 @router.post("/synthesize")

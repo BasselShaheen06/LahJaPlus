@@ -5,6 +5,7 @@ const DIALECTS = [
   { key: 'levantine', label: 'Levantine', labelAr: 'شامي' },
   { key: 'gulf', label: 'Gulf', labelAr: 'خليجي' },
   { key: 'maghrebi', label: 'Maghrebi', labelAr: 'مغاربي' },
+  { key: 'fusha', label: 'Standard', labelAr: 'فصحى' },
 ]
 
 export default function SynthesisBar({
@@ -14,7 +15,7 @@ export default function SynthesisBar({
   const [selectedDialect, setSelectedDialect] = useState(null)
 
   const handleDialectClick = (dialectKey) => {
-    if (dialectKey === detectedDialect) return
+    // We allow clicking even if it's the same dialect to 'clean up' the STT
     setSelectedDialect(dialectKey)
     onTranslate(dialectKey)
   }

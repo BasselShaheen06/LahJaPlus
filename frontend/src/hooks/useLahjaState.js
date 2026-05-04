@@ -42,36 +42,41 @@ export function useLahjaState() {
       error: null,
     })
     try {
+      console.log("Sending audio to local Whisper (Phase 1)...");
       const result = await classifyAudio(fileData.file)
       updateState({ classifyResultA: result, loadingA: false, transcriptLoading: true })
 
       const transcript = await transcribeAudio(fileData.file, result.dialect)
+      console.log("Phase 1 Success! Raw Text:", transcript.full_text);
       updateState({ transcriptResult: transcript, transcriptLoading: false })
     } catch (err) {
-      updateState({ error: 'Processing failed: ' + err.message, loadingA: false, transcriptLoading: false })
+      const errorMessage = err.response?.data?.detail || err.message;
+      updateState({ error: '❌ Processing failed: ' + errorMessage, loadingA: false, transcriptLoading: false })
     }
   }, [])
 
   // ── Point 4: Translate + Synthesize ───────────────────────────────────────
   const handleTranslate = useCallback(async (targetDialect) => {
     if (!state.transcriptResult || !state.classifyResultA) return
-    updateState({ translateLoading: true, translateResult: null, synthesisUrl: null })
+    updateState({ translateLoading: true, translateResult: null, synthesisUrl: null, error: null })
     try {
       const result = await translateText(state.transcriptResult.full_text, state.classifyResultA.dialect, targetDialect)
       updateState({ translateResult: result, translateLoading: false })
     } catch (err) {
-      updateState({ error: 'Translation failed', translateLoading: false })
+      const errorMessage = err.response?.data?.detail || err.message;
+      updateState({ error: '❌ Translation failed: ' + errorMessage, translateLoading: false })
     }
   }, [state.transcriptResult, state.classifyResultA])
 
   const handleSynthesize = useCallback(async (targetDialect) => {
     if (!state.translateResult || !state.fileA) return
-    updateState({ synthesisLoading: true, synthesisUrl: null })
+    updateState({ synthesisLoading: true, synthesisUrl: null, error: null })
     try {
       const audioUrl = await synthesizeSpeech(state.translateResult.target_text, targetDialect, state.fileA.file)
       updateState({ synthesisUrl: audioUrl, synthesisLoading: false })
     } catch (err) {
-      updateState({ error: 'Synthesis failed', synthesisLoading: false })
+      const errorMessage = err.response?.data?.detail || err.message;
+      updateState({ error: '❌ Synthesis failed: ' + errorMessage, synthesisLoading: false })
     }
   }, [state.translateResult, state.fileA])
 
@@ -89,7 +94,8 @@ export function useLahjaState() {
       const result = await classifyAudio(fileData.file)
       updateState({ blendClassifyA: result, blendLoadingA: false })
     } catch (err) {
-      updateState({ error: 'Failed to classify Blend File A', blendLoadingA: false })
+      const errorMessage = err.response?.data?.detail || err.message;
+      updateState({ error: '❌ Failed to classify Blend File A: ' + errorMessage, blendLoadingA: false })
     }
   }, [])
 
@@ -107,17 +113,18 @@ export function useLahjaState() {
       const result = await classifyAudio(fileData.file)
       updateState({ blendClassifyB: result, blendLoadingB: false })
     } catch (err) {
-      updateState({ error: 'Failed to classify Blend File B', blendLoadingB: false })
+      const errorMessage = err.response?.data?.detail || err.message;
+      updateState({ error: '❌ Failed to classify Blend File B: ' + errorMessage, blendLoadingB: false })
     }
   }, [])
 
   // ── Point 5: Run the blend ─────────────────────────────────────────────────
   const handleBlend = useCallback(async (newAlpha) => {
-    updateState({ alpha: newAlpha })
+    updateState({ alpha: newAlpha, error: null })
     if (!state.blendFileA?.file || !state.blendFileB?.file) return
 
     try {
-      // Revoke previous blended audio URL to avoid memory leaks
+      // Revoke previous blended audio URL to avoid memory leaks in the browser
       if (state.blendedAudioUrl) URL.revokeObjectURL(state.blendedAudioUrl)
 
       const result = await blendDialects(state.blendFileA.file, state.blendFileB.file, newAlpha)
@@ -126,7 +133,8 @@ export function useLahjaState() {
         blendedAudioUrl: result.blendedAudioUrl || null,
       })
     } catch (err) {
-      updateState({ error: 'Failed to blend files: ' + err.message })
+      const errorMessage = err.response?.data?.detail || err.message;
+      updateState({ error: '❌ Failed to blend files: ' + errorMessage })
     }
   }, [state.blendFileA, state.blendFileB, state.blendedAudioUrl])
 
