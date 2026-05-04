@@ -10,7 +10,17 @@ import BlendFooter from './components/BlendFooter'
 import './App.css'
 
 export default function App() {
-  const { state, updateState, handleLoadFileA, handleLoadFileB, handleTranslate, handleSynthesize, handleBlend } = useLahjaState()
+  const {
+    state,
+    updateState,
+    handleLoadFileA,
+    handleTranslate,
+    handleSynthesize,
+    handleLoadBlendFileA,
+    handleLoadBlendFileB,
+    handleBlend,
+  } = useLahjaState()
+
   const [currentTime, setCurrentTime] = useState(0)
 
   return (
@@ -37,7 +47,6 @@ export default function App() {
         <div className="area-sidebar">
           <DialectResult
             result={state.classifyResultA}
-            blendResult={state.blendResult}
             loading={state.loadingA}
           />
         </div>
@@ -79,16 +88,20 @@ export default function App() {
           />
         </div>
 
+        {/* Point 5 — Blend section has its own independent File A & File B uploaders */}
         <div className="area-blend">
           <BlendFooter
-            fileA={state.fileA}
-            fileB={state.fileB}
-            classifyResultA={state.classifyResultA}
-            classifyResultB={state.classifyResultB}
+            blendFileA={state.blendFileA}
+            blendFileB={state.blendFileB}
+            blendClassifyA={state.blendClassifyA}
+            blendClassifyB={state.blendClassifyB}
             blendResult={state.blendResult}
+            blendedAudioUrl={state.blendedAudioUrl}
             alpha={state.alpha}
-            loadingB={state.loadingB}
-            onFileBLoaded={handleLoadFileB}
+            loadingA={state.blendLoadingA}
+            loadingB={state.blendLoadingB}
+            onFileALoaded={handleLoadBlendFileA}
+            onFileBLoaded={handleLoadBlendFileB}
             onBlend={handleBlend}
           />
         </div>

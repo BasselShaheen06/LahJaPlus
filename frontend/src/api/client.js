@@ -12,15 +12,26 @@ export async function classifyAudio(file) {
   return data
 }
 
-// Point 5: Sending raw audio files to backend for time-domain summation
+// Point 5: Send raw audio files for time-domain blend; decode returned base64 WAV into a playable URL
 export async function blendDialects(fileA, fileB, alpha) {
   const formData = new FormData()
   formData.append('file_a', fileA)
   formData.append('file_b', fileB)
-  formData.append('alpha', alpha)
+  formData.append('alpha', alpha.toString())
 
   const { data } = await api.post('/blend', formData)
-  return data
+
+  // Convert base64-encoded WAV to an object URL the browser can play
+  let blendedAudioUrl = null
+  if (data.blended_audio_b64) {
+    const binary = atob(data.blended_audio_b64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    const blob = new Blob([bytes], { type: 'audio/wav' })
+    blendedAudioUrl = URL.createObjectURL(blob)
+  }
+
+  return { ...data, blendedAudioUrl }
 }
 
 // Point 3
