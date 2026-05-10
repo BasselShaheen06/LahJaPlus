@@ -8,6 +8,7 @@ Model priority:
 
 import os
 import json
+import re
 from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -21,6 +22,7 @@ router = APIRouter()
 
 GEMINI_KEY = os.getenv("GEMINI_API_KEY", "")
 GROQ_KEY   = os.getenv("GROQ_API_KEY", "")
+USE_RULE_FALLBACK = os.getenv("USE_RULE_TRANSLATE", "1") == "1"
 
 _gemini_client = OpenAI(
     api_key=GEMINI_KEY or "placeholder",
@@ -209,6 +211,83 @@ DIALECT_RULES = {
 }
 
 
+_FALLBACK_MAP = {
+    "egyptian": {
+        "أريد": "عايز",
+        "أريدُ": "عايز",
+        "الآن": "دلوقتي",
+        "ماذا": "إيه",
+        "لماذا": "ليه",
+        "هذا": "ده",
+        "هذه": "دي",
+        "لأن": "عشان",
+        "ليس": "مش",
+        "أجل": "أيوه",
+        "نعم": "أيوه",
+    },
+    "levantine": {
+        "أريد": "بدي",
+        "أريدُ": "بدي",
+        "الآن": "هلأ",
+        "ماذا": "شو",
+        "لماذا": "ليش",
+        "هذا": "هاد",
+        "هذه": "هاي",
+        "لأن": "لأنو",
+        "ليس": "مو",
+        "جيد": "منيح",
+        "كثير": "كتير",
+    },
+    "gulf": {
+        "أريد": "أبغى",
+        "أريدُ": "أبغى",
+        "الآن": "الحين",
+        "ماذا": "إيش",
+        "لماذا": "ليش",
+        "هذا": "هذا",
+        "هذه": "هذي",
+        "لأن": "لأني",
+        "ليس": "مو",
+        "جيد": "زين",
+        "كثير": "وايد",
+    },
+    "maghrebi": {
+        "أريد": "بغيت",
+        "أريدُ": "بغيت",
+        "الآن": "دابا",
+        "ماذا": "شنو",
+        "لماذا": "علاش",
+        "هذا": "هاد",
+        "هذه": "هادي",
+        "لأن": "حيت",
+        "ليس": "ماشي",
+        "جيد": "مزيان",
+        "كثير": "بزاف",
+    },
+    "fusha": {},
+}
+
+
+def _apply_word_replacements(text: str, mapping: dict) -> str:
+    if not mapping:
+        return text
+
+    pattern = re.compile(r"\b(" + "|".join(map(re.escape, mapping.keys())) + r")\b")
+    return pattern.sub(lambda m: mapping.get(m.group(1), m.group(1)), text)
+
+
+def _rule_based_translate(text: str, source_dialect: str, target_dialect: str) -> dict:
+    mapping = _FALLBACK_MAP.get(target_dialect, {})
+    target_text = _apply_word_replacements(text, mapping)
+    return {
+        "msa_text":       text,
+        "target_text":    target_text,
+        "source_dialect": source_dialect,
+        "target_dialect": target_dialect,
+        "mode":           "rule_fallback",
+    }
+
+
 def _build_system_prompt(source_dialect: str, target_dialect: str) -> str:
     rules = DIALECT_RULES.get(target_dialect, {})
     vocab_ref = _build_vocab_reference(target_dialect)
@@ -298,4 +377,6 @@ async def translate_dialect(req: TranslateRequest):
         raise HTTPException(status_code=500, detail="Model returned invalid JSON")
     except Exception as e:
         print(f"[translate] Error: {e}")
+        if USE_RULE_FALLBACK:
+            return _rule_based_translate(req.text, req.source_dialect, req.target_dialect)
         raise HTTPException(status_code=500, detail=str(e))
